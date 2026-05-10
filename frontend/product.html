@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopNest — Product</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="logo">ShopNest</a>
+  <ul class="nav-links">
+    <li><a href="/">Shop</a></li>
+    <li><a href="orders.html">My Orders</a></li>
+  </ul>
+  <a href="cart.html" class="btn btn-outline cart-badge">
+    🛒 Cart <span id="cart-count">0</span>
+  </a>
+  <a href="login.html" class="btn btn-primary" id="nav-auth">Login</a>
+</nav>
+
+<div class="container" style="padding-top:32px">
+
+  <!-- Product Details -->
+  <div id="product-detail" style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:40px">
+    <div style="flex:1;min-width:280px">
+      <img id="prod-image"
+           src="https://placehold.co/600x400?text=Loading..." id="prod-image"
+           style="width:100%;border-radius:12px;border:1px solid #e2e8f0">
+    </div>
+    <div style="flex:1;min-width:280px">
+      <div id="prod-category"
+           style="font-size:12px;color:#64748b;margin-bottom:8px"></div>
+      <h1 id="prod-name"
+          style="font-size:28px;font-weight:800;margin-bottom:8px"></h1>
+      <div id="prod-stars" class="stars" style="margin-bottom:8px"></div>
+      <div id="prod-price"
+           style="font-size:32px;font-weight:800;color:#f97316;margin-bottom:16px"></div>
+      <div id="prod-stock"
+           style="font-size:13px;margin-bottom:16px"></div>
+      <p id="prod-desc"
+         style="color:#64748b;line-height:1.8;margin-bottom:24px"></p>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+        <label style="font-weight:600;font-size:14px">Qty:</label>
+        <input type="number" id="qty" value="1" min="1"
+               style="width:70px;padding:8px;border:1.5px solid #e2e8f0;
+                      border-radius:8px;font-size:14px">
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;font-size:16px;padding:14px"
+              onclick="addToCartFromPage()">
+        🛒 Add to Cart
+      </button>
+    </div>
+  </div>
+
+  <!-- Reviews Section -->
+  <div style="border-top:1px solid #e2e8f0;padding-top:32px">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:20px">
+      Customer Reviews
+    </h2>
+
+    <!-- Write a review -->
+    <div class="card" style="padding:24px;margin-bottom:24px" id="review-form-box">
+      <h3 style="font-weight:700;margin-bottom:16px">Write a Review</h3>
+      <div id="review-msg"></div>
+      <div class="form-group">
+        <label>Rating</label>
+        <select id="rev-rating">
+          <option value="5">★★★★★ (5)</option>
+          <option value="4">★★★★☆ (4)</option>
+          <option value="3">★★★☆☆ (3)</option>
+          <option value="2">★★☆☆☆ (2)</option>
+          <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Comment</label>
+        <textarea id="rev-comment" rows="3"
+                  style="width:100%;padding:10px;border:1.5px solid #e2e8f0;
+                         border-radius:8px;font-family:inherit;font-size:14px"
+                  placeholder="Share your experience..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitReview()">
+        Submit Review
+      </button>
+    </div>
+
+    <!-- Reviews list -->
+    <div id="reviews-list"></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products.js"></script>
+<script>
+  const params    = new URLSearchParams(window.location.search);
+  const productId = params.get('id');
+  let currentProduct = null;
+
+  async function loadProduct() {
+    try {
+      const p = await api.get('/products/' + productId);
+      currentProduct = p;
+
+      document.title = `ShopNest — ${p.NAME}`;
+      document.getElementById('prod-name').textContent     = p.NAME;
+      document.getElementById('prod-category').textContent = p.CATEGORY || '';
+      document.getElementById('prod-price').textContent    =
+        `Rs. ${Number(p.PRICE).toLocaleString()}`;
+      document.getElementById('prod-desc').textContent     = p.DESCRIPTION || '';
+
+      const rating = p.AVG_RATING || p.avg_rating || 0;
+      document.getElementById('prod-stars').innerHTML =
+        '★'.repeat(Math.round(rating)) +
+        '☆'.repeat(5 - Math.round(rating)) +
+        ` (${rating || 'No ratings yet'})`;
+
+      const stock = p.QUANTITY || 0;
+      document.getElementById('prod-stock').innerHTML =
+        stock > 0
+          ? `<span style="color:#10b981;font-weight:700">✓ In Stock (${stock} available)</span>`
+          : `<span style="color:#ef4444;font-weight:700">✗ Out of Stock</span>`;
+
+      if (p.images && p.images.length > 0) {
+        document.getElementById('prod-image').src = p.images[0].IMAGE_URL;
+      } else if (p.IMAGE_URL) { 
+        document.getElementById('prod-image').src = p.IMAGE_URL;
+      } else {
+        document.getElementById('prod-image').src = 'https://placehold.co/600x400?text=No+Image';
+      }
+
+      renderReviews(p.REVIEWS || []);
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function renderReviews(reviews) {
+    const container = document.getElementById('reviews-list');
+    if (!reviews.length) {
+      container.innerHTML =
+        '<p style="color:#64748b">No reviews yet. Be the first!</p>';
+      return;
+    }
+    container.innerHTML = reviews.map(r => `
+      <div class="card" style="padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <strong>${r.FULL_NAME}</strong>
+          <span class="stars">${'★'.repeat(r.RATING)}${'☆'.repeat(5-r.RATING)}</span>
+        </div>
+        <p style="color:#64748b;font-size:13px">${r.REVIEW_COMMENT || r.review_comment || ''}</p>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+          ${new Date(r.CREATED_AT).toLocaleDateString('en-PK')}
+        </div>
+      </div>`).join('');
+  }
+
+  async function addToCartFromPage() {
+    if (!getToken()) return location.href = '/login.html';
+    const qty = parseInt(document.getElementById('qty').value);
+    try {
+      await api.post('/cart', { product_id: productId, quantity: qty });
+      alert('Added to cart!');
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+
+  async function submitReview() {
+    if (!getToken()) return location.href = '/login.html';
+    const msg = document.getElementById('review-msg');
+    try {
+      await api.post('/reviews', {
+        product_id: productId,
+        rating:     document.getElementById('rev-rating').value,
+        review_comment: document.getElementById('rev-comment').value
+      });
+      msg.innerHTML =
+        '<div class="alert alert-success">Review submitted!</div>';
+      setTimeout(() => location.reload(), 1000);
+    } catch(e) {
+      msg.innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function updateCartCount() {
+    try {
+      if (!getToken()) return;
+      const items = await api.get('/cart');
+      const count = items.reduce((sum, i) => sum + i.QUANTITY, 0);
+      const badge = document.getElementById('cart-count');
+      if (badge) badge.textContent = count;
+    } catch(e) {}
+  }
+
+  updateCartCount();
+  updateNav();
+  loadProduct();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopNest — Home</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="logo">ShopNest</a>
+  <ul class="nav-links">
+    <li><a href="/">Products</a></li>
+    <li><a href="orders.html">My Orders</a></li>
+  </ul>
+  <a href="cart.html" class="btn btn-outline cart-badge">
+    🛒 Cart <span id="cart-count">0</span>
+  </a>
+  <a href="login.html" class="btn btn-primary" id="nav-auth">Login</a>
+</nav>
+
+<!-- Search + Filter Bar -->
+<div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:16px 32px;
+             display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <input id="search" placeholder="Search products..." class="form-group"
+         style="margin:0;padding:10px 14px;border:1.5px solid #e2e8f0;
+                border-radius:8px;font-size:14px;width:280px">
+  <select id="category" style="padding:10px 14px;border:1.5px solid #e2e8f0;
+                                border-radius:8px;font-size:14px">
+    <option value="">All Categories</option>
+  </select>
+  <button class="btn btn-primary" onclick="loadProducts()">Search</button>
+</div>
+
+<div id="products" class="products-grid"></div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  async function loadCategories() {
+  try {
+    const cats = await api.get('/products/categories/all');
+    const select = document.getElementById('category');
+    select.innerHTML = '<option value="">All Categories</option>' +
+      cats.map(c => `<option value="${c.CATEGORY_ID}">${c.NAME}</option>`).join('');
+  } catch(e) {
+    console.error('Categories failed:', e.message);
+  }
+}
+
+async function loadProducts() {
+  const search   = document.getElementById('search').value;
+  const category = document.getElementById('category').value;
+  const url = `/products?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`;
+  try {
+    const products = await api.get(url);
+    document.getElementById('products').innerHTML = products.length
+      ? products.map(p => `
+          <a href="product.html?id=${p.PRODUCT_ID}"
+             style="text-decoration:none;color:inherit">
+            <div class="card product-card">
+              <img src="${p.IMAGE_URL || 'https://placehold.co/400x200?text=No+Image'}"
+                   alt="${p.NAME}" loading="lazy">
+              <div class="info">
+                <div class="name">${p.NAME}</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:6px">
+                  ${p.CATEGORY || 'Uncategorized'}
+                </div>
+                <div class="stars">
+                  ${'★'.repeat(Math.round(p.AVG_RATING || 0))}
+                  ${'☆'.repeat(5 - Math.round(p.AVG_RATING || 0))}
+                </div>
+                <div class="price">Rs. ${Number(p.PRICE).toLocaleString()}</div>
+                <button class="btn btn-primary" style="width:100%"
+                        onclick="event.preventDefault();addToCart(${p.PRODUCT_ID})">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </a>`).join('')
+      : '<p style="padding:32px;color:#64748b">No products found.</p>';
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function addToCart(pid) {
+  if (!getToken()) return location.href = '/login.html';
+  try {
+    await api.post('/cart', { product_id: pid, quantity: 1 });
+    await updateCartCount();
+    alert('Added to cart!');
+  } catch(e) {
+    alert(e.message);
+  }
+}
+
+async function updateCartCount() {
+  try {
+    if (!getToken()) return;
+    const items = await api.get('/cart');
+    const count = items.reduce((sum, i) => sum + i.QUANTITY, 0);
+    const badge = document.getElementById('cart-count');
+    if (badge) badge.textContent = count;
+  } catch(e) {}
+}
+
+const user = getUser();
+if (user) {
+  const navAuth = document.getElementById('nav-auth');
+  navAuth.textContent = 'Logout';
+  navAuth.onclick = logout;
+
+  // Show dashboard button for admin
+  if (user.role === 'admin') {
+    const dashBtn = document.createElement('a');
+    dashBtn.href = '/admin.html';
+    dashBtn.className = 'btn btn-outline';
+    dashBtn.textContent = '⚙ Dashboard';
+    dashBtn.style.marginRight = '8px';
+    navAuth.parentNode.insertBefore(dashBtn, navAuth);
+  }
+}
+  
+// Load on page start
+updateCartCount();
+loadCategories();
+loadProducts();
+
+</script>
+</body>
+</html>

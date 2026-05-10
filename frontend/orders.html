@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en">
+<head><meta charset="UTF-8"><title>ShopNest — My Orders</title>
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<nav class="navbar">
+  <a href="/" class="logo">ShopNest</a>
+  <ul class="nav-links"><li><a href="/">Shop</a></li></ul>
+  <button class="btn btn-outline" onclick="logout()">Logout</button>
+</nav>
+<div class="container" style="padding-top:32px">
+  <h1 style="font-size:24px;font-weight:800;margin-bottom:24px">My Orders</h1>
+  <div id="orders"></div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  async function loadOrders() {
+    if (!getToken()) return location.href='/login.html';
+    const orders = await api.get('/orders');
+    document.getElementById('orders').innerHTML = orders.length
+      ? orders.map(o => `
+          <div class="card" style="padding:20px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <strong>Order #${o.ORDER_ID}</strong>
+              <span class="badge badge-${o.STATUS}">${o.STATUS}</span>
+            </div>
+            <div style="color:#64748b;font-size:13px">
+              ${new Date(o.CREATED_AT).toLocaleDateString('en-PK')} ·
+              Payment: ${o.METHOD} · ${o.PAYMENT_STATUS}
+            </div>
+            <div style="font-size:20px;font-weight:800;color:#f97316;margin-top:8px">
+              Rs. ${Number(o.TOTAL_AMOUNT).toLocaleString()}
+              ${o.DISCOUNT_APPLIED > 0
+                ? `<span style="font-size:13px;color:#10b981">
+                    (saved Rs. ${Number(o.DISCOUNT_APPLIED).toLocaleString()})
+                   </span>` : ''}
+            </div>
+          </div>`)
+        .join('')
+      : '<p style="color:#64748b">No orders yet. <a href="/">Start shopping!</a></p>';
+  }
+  loadOrders();
+</script>
+</body></html>

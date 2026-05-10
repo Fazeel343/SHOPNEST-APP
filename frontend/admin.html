@@ -1,0 +1,510 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopNest Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="logo">ShopNest Admin</a>
+  <ul class="nav-links">
+    <li><a href="/">Store</a></li>
+  </ul>
+  <button class="btn btn-outline" onclick="logout()">Logout</button>
+</nav>
+
+<div class="container" style="padding-top:32px">
+  <h1 style="font-size:24px;font-weight:800;margin-bottom:24px">Admin Dashboard</h1>
+
+  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center">
+    <input type="number" id="year"  value="2026"
+           style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;width:100px">
+    <input type="number" id="month" value="5"
+           style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;width:80px">
+    <button class="btn btn-primary" onclick="loadReport()">Load Sales Report</button>
+    <button class="btn btn-outline" onclick="loadStock()">Manage Stock</button>
+    <button class="btn btn-primary" onclick="loadOrders()">Manage Orders</button>
+  </div>
+
+  <div id="admin-output"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  requireAdmin();
+
+  async function loadReport() {
+    try {
+      const y    = document.getElementById('year').value;
+      const m    = document.getElementById('month').value;
+      const rows = await api.get(`/admin/report?year=${y}&month=${m}`);
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Sales Report — ${y}/${m}</h3>
+        ${rows.length === 0
+          ? '<p style="color:#64748b">No sales data for this period.</p>'
+          : `<table style="width:100%;border-collapse:collapse;font-size:14px">
+              <tr style="background:#f1f5f9">
+                <th style="padding:10px;text-align:left">Product</th>
+                <th style="padding:10px;text-align:right">Units Sold</th>
+                <th style="padding:10px;text-align:right">Revenue (Rs.)</th>
+                <th style="padding:10px;text-align:right">Orders</th>
+              </tr>
+              ${rows.map(r => `
+                <tr style="border-top:1px solid #e2e8f0">
+                  <td style="padding:10px">${r.product}</td>
+                  <td style="padding:10px;text-align:right">${r.units_sold}</td>
+                  <td style="padding:10px;text-align:right;color:#f97316;font-weight:700">
+                    Rs. ${Number(r.revenue).toLocaleString()}
+                  </td>
+                  <td style="padding:10px;text-align:right">${r.total_orders}</td>
+                </tr>`).join('')}
+            </table>`}`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function loadStock() {
+    try {
+      const rows = await api.get('/admin/stock');
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Stock Management</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr style="background:#f1f5f9">
+            <th style="padding:10px;text-align:left">Product</th>
+            <th style="padding:10px;text-align:right">Stock</th>
+            <th style="padding:10px;text-align:right">Threshold</th>
+            <th style="padding:10px;text-align:center">Status</th>
+            <th style="padding:10px;text-align:center">Update</th>
+          </tr>
+          ${rows.map(r => `
+            <tr style="border-top:1px solid #e2e8f0">
+              <td style="padding:10px">${r.NAME}</td>
+              <td style="padding:10px;text-align:right;font-weight:700;
+                  color:${r.QUANTITY <= r.LOW_STOCK_THRESHOLD ? '#ef4444' : '#10b981'}">
+                ${r.QUANTITY}
+              </td>
+              <td style="padding:10px;text-align:right">${r.LOW_STOCK_THRESHOLD}</td>
+              <td style="padding:10px;text-align:center">
+                ${r.QUANTITY <= r.LOW_STOCK_THRESHOLD
+                  ? '<span class="badge" style="background:#fee2e2;color:#991b1b">Low Stock ⚠</span>'
+                  : '<span class="badge" style="background:#d1fae5;color:#065f46">OK ✓</span>'}
+              </td>
+              <td style="padding:10px;text-align:center">
+                <div style="display:flex;gap:6px;justify-content:center">
+                  <input type="number" id="stock-${r.PRODUCT_ID}" value="${r.QUANTITY}"
+                         style="width:80px;padding:6px;border:1px solid #e2e8f0;border-radius:6px">
+                  <button class="btn btn-primary" style="padding:6px 12px;font-size:12px"
+                          onclick="updateStock(${r.PRODUCT_ID})">Save</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </table>`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function updateStock(id) {
+    const qty = document.getElementById('stock-' + id).value;
+    try {
+      await api.put('/admin/stock/' + id, { quantity: qty });
+      alert('Stock updated!');
+      loadStock();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const rows = await api.get('/admin/orders');
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Manage Orders</h3>
+        ${rows.length === 0
+          ? '<p style="color:#64748b">No orders yet.</p>'
+          : `<table style="width:100%;border-collapse:collapse;font-size:13px">
+              <tr style="background:#f1f5f9">
+                <th style="padding:10px;text-align:left">Order ID</th>
+                <th style="padding:10px;text-align:left">Customer</th>
+                <th style="padding:10px;text-align:right">Amount</th>
+                <th style="padding:10px;text-align:center">Payment</th>
+                <th style="padding:10px;text-align:center">Status</th>
+                <th style="padding:10px;text-align:center">Update</th>
+              </tr>
+              ${rows.map(o => `
+                <tr style="border-top:1px solid #e2e8f0">
+                  <td style="padding:10px">#${o.ORDER_ID}</td>
+                  <td style="padding:10px">
+                    <strong>${o.FULL_NAME}</strong><br>
+                    <span style="font-size:11px;color:#64748b">${o.EMAIL}</span>
+                  </td>
+                  <td style="padding:10px;text-align:right;font-weight:700;color:#f97316">
+                    Rs. ${Number(o.TOTAL_AMOUNT).toLocaleString()}
+                  </td>
+                  <td style="padding:10px;text-align:center;font-size:12px">
+                    ${o.METHOD}<br>${o.PAYMENT_STATUS}
+                  </td>
+                  <td style="padding:10px;text-align:center">
+                    <span class="badge badge-${o.STATUS}">${o.STATUS}</span>
+                  </td>
+                  <td style="padding:10px;text-align:center">
+                    <select onchange="updateOrder(${o.ORDER_ID}, this.value)"
+                            style="padding:6px;border-radius:6px;
+                                   border:1px solid #e2e8f0;font-size:12px">
+                      <option value="pending"   ${o.STATUS==='pending'   ?'selected':''}>Pending</option>
+                      <option value="confirmed" ${o.STATUS==='confirmed' ?'selected':''}>Confirmed</option>
+                      <option value="shipped"   ${o.STATUS==='shipped'   ?'selected':''}>Shipped</option>
+                      <option value="delivered" ${o.STATUS==='delivered' ?'selected':''}>Delivered</option>
+                      <option value="cancelled" ${o.STATUS==='cancelled' ?'selected':''}>Cancelled</option>
+                    </select>
+                  </td>
+                </tr>`).join('')}
+            </table>`}`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function updateOrder(id, status) {
+    try {
+      await api.put('/admin/orders/' + id, { status });
+      alert(`Order #${id} updated to ${status}!`);
+      loadOrders();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+</script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopNest Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="logo">ShopNest Admin</a>
+  <ul class="nav-links">
+    <li><a href="/">Store</a></li>
+    <li><a href="/admin.html" style="color:#f97316;font-weight:700">Dashboard</a></li>
+  </ul>
+  <button class="btn btn-outline" onclick="logout()">Logout</button>
+</nav>
+
+<div class="container" style="padding-top:32px">
+  <h1 style="font-size:24px;font-weight:800;margin-bottom:24px">Admin Dashboard</h1>
+
+  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center">
+    <input type="number" id="year"  value="2026"
+           style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;width:100px">
+    <input type="number" id="month" value="5"
+           style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;width:80px">
+    <button class="btn btn-primary" onclick="loadReport()">Load Sales Report</button>
+    <button class="btn btn-outline" onclick="loadStock()">Manage Stock</button>
+    <button class="btn btn-primary" onclick="loadOrders()">Manage Orders</button>
+    <button class="btn btn-outline" onclick="loadCoupons()">Manage Coupons</button>
+  </div>
+
+  <div id="admin-output"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  requireAdmin();
+
+  async function loadReport() {
+    try {
+      const y    = document.getElementById('year').value;
+      const m    = document.getElementById('month').value;
+      const rows = await api.get(`/admin/report?year=${y}&month=${m}`);
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Sales Report — ${y}/${m}</h3>
+        ${rows.length === 0
+          ? '<p style="color:#64748b">No sales data for this period.</p>'
+          : `<table style="width:100%;border-collapse:collapse;font-size:14px">
+              <tr style="background:#f1f5f9">
+                <th style="padding:10px;text-align:left">Product</th>
+                <th style="padding:10px;text-align:right">Units Sold</th>
+                <th style="padding:10px;text-align:right">Revenue (Rs.)</th>
+                <th style="padding:10px;text-align:right">Orders</th>
+              </tr>
+              ${rows.map(r => `
+                <tr style="border-top:1px solid #e2e8f0">
+                  <td style="padding:10px">${r.product}</td>
+                  <td style="padding:10px;text-align:right">${r.units_sold}</td>
+                  <td style="padding:10px;text-align:right;color:#f97316;font-weight:700">
+                    Rs. ${Number(r.revenue).toLocaleString()}
+                  </td>
+                  <td style="padding:10px;text-align:right">${r.total_orders}</td>
+                </tr>`).join('')}
+            </table>`}`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function loadStock() {
+    try {
+      const rows = await api.get('/admin/stock');
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Stock Management</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr style="background:#f1f5f9">
+            <th style="padding:10px;text-align:left">Product</th>
+            <th style="padding:10px;text-align:right">Stock</th>
+            <th style="padding:10px;text-align:right">Threshold</th>
+            <th style="padding:10px;text-align:center">Status</th>
+            <th style="padding:10px;text-align:center">Update</th>
+          </tr>
+          ${rows.map(r => `
+            <tr style="border-top:1px solid #e2e8f0">
+              <td style="padding:10px">${r.NAME}</td>
+              <td style="padding:10px;text-align:right;font-weight:700;
+                  color:${r.QUANTITY <= r.LOW_STOCK_THRESHOLD ? '#ef4444' : '#10b981'}">
+                ${r.QUANTITY}
+              </td>
+              <td style="padding:10px;text-align:right">${r.LOW_STOCK_THRESHOLD}</td>
+              <td style="padding:10px;text-align:center">
+                ${r.QUANTITY <= r.LOW_STOCK_THRESHOLD
+                  ? '<span class="badge" style="background:#fee2e2;color:#991b1b">Low Stock ⚠</span>'
+                  : '<span class="badge" style="background:#d1fae5;color:#065f46">OK ✓</span>'}
+              </td>
+              <td style="padding:10px;text-align:center">
+                <div style="display:flex;gap:6px;justify-content:center">
+                  <input type="number" id="stock-${r.PRODUCT_ID}" value="${r.QUANTITY}"
+                         style="width:80px;padding:6px;border:1px solid #e2e8f0;border-radius:6px">
+                  <button class="btn btn-primary" style="padding:6px 12px;font-size:12px"
+                          onclick="updateStock(${r.PRODUCT_ID})">Save</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </table>`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function updateStock(id) {
+    const qty = document.getElementById('stock-' + id).value;
+    try {
+      await api.put('/admin/stock/' + id, { quantity: qty });
+      alert('Stock updated!');
+      loadStock();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const rows = await api.get('/admin/orders');
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:12px">Manage Orders</h3>
+        ${rows.length === 0
+          ? '<p style="color:#64748b">No orders yet.</p>'
+          : `<table style="width:100%;border-collapse:collapse;font-size:13px">
+              <tr style="background:#f1f5f9">
+                <th style="padding:10px;text-align:left">Order ID</th>
+                <th style="padding:10px;text-align:left">Customer</th>
+                <th style="padding:10px;text-align:right">Amount</th>
+                <th style="padding:10px;text-align:center">Payment</th>
+                <th style="padding:10px;text-align:center">Status</th>
+                <th style="padding:10px;text-align:center">Update</th>
+              </tr>
+              ${rows.map(o => `
+                <tr style="border-top:1px solid #e2e8f0">
+                  <td style="padding:10px">#${o.ORDER_ID}</td>
+                  <td style="padding:10px">
+                    <strong>${o.FULL_NAME}</strong><br>
+                    <span style="font-size:11px;color:#64748b">${o.EMAIL}</span>
+                  </td>
+                  <td style="padding:10px;text-align:right;font-weight:700;color:#f97316">
+                    Rs. ${Number(o.TOTAL_AMOUNT).toLocaleString()}
+                  </td>
+                  <td style="padding:10px;text-align:center;font-size:12px">
+                    ${o.METHOD}<br>${o.PAYMENT_STATUS}
+                  </td>
+                  <td style="padding:10px;text-align:center">
+                    <span class="badge badge-${o.STATUS}">${o.STATUS}</span>
+                  </td>
+                  <td style="padding:10px;text-align:center">
+                    ${o.STATUS === 'delivered' || o.STATUS === 'cancelled'
+                      ? `<span style="font-size:12px;color:#64748b;font-style:italic">
+                           🔒 Locked</span>`
+                      : `<select onchange="updateOrder(${o.ORDER_ID}, this.value)"
+                                 style="padding:6px;border-radius:6px;
+                                        border:1px solid #e2e8f0;font-size:12px">
+                           <option value="pending"   ${o.STATUS==='pending'   ?'selected':''}>Pending</option>
+                           <option value="confirmed" ${o.STATUS==='confirmed' ?'selected':''}>Confirmed</option>
+                           <option value="shipped"   ${o.STATUS==='shipped'   ?'selected':''}>Shipped</option>
+                           <option value="delivered" ${o.STATUS==='delivered' ?'selected':''}>Delivered</option>
+                           <option value="cancelled" ${o.STATUS==='cancelled' ?'selected':''}>Cancelled</option>
+                         </select>`}
+                  </td>
+                </tr>`).join('')}
+            </table>`}`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function updateOrder(id, status) {
+    try {
+      await api.put('/admin/orders/' + id, { status });
+      alert(`Order #${id} updated to ${status}!`);
+      loadOrders();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+
+  async function loadCoupons() {
+    try {
+      const rows = await api.get('/admin/coupons');
+      document.getElementById('admin-output').innerHTML = `
+        <h3 style="font-weight:700;margin-bottom:16px">Manage Coupons</h3>
+
+        <!-- Create Coupon Form -->
+        <div class="card" style="padding:24px;margin-bottom:24px">
+          <h4 style="font-weight:700;margin-bottom:16px">Create New Coupon</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+              <label>Coupon Code</label>
+              <input type="text" id="new-code" placeholder="e.g. SAVE30"
+                     style="text-transform:uppercase">
+            </div>
+            <div class="form-group">
+              <label>Discount Type</label>
+              <select id="new-type">
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (Rs.)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Discount Value</label>
+              <input type="number" id="new-value" placeholder="e.g. 20">
+            </div>
+            <div class="form-group">
+              <label>Min Order Amount (Rs.)</label>
+              <input type="number" id="new-min" placeholder="0 = no minimum" value="0">
+            </div>
+            <div class="form-group">
+              <label>Expiry Date</label>
+              <input type="date" id="new-expiry">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="createCoupon()">
+            + Create Coupon
+          </button>
+        </div>
+
+        <!-- Existing Coupons -->
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr style="background:#f1f5f9">
+            <th style="padding:10px;text-align:left">Code</th>
+            <th style="padding:10px;text-align:left">Type</th>
+            <th style="padding:10px;text-align:right">Value</th>
+            <th style="padding:10px;text-align:right">Min Order</th>
+            <th style="padding:10px;text-align:center">Expiry</th>
+            <th style="padding:10px;text-align:center">Status</th>
+            <th style="padding:10px;text-align:center">Action</th>
+          </tr>
+          ${rows.map(c => `
+            <tr style="border-top:1px solid #e2e8f0">
+              <td style="padding:10px;font-weight:700;color:#f97316">${c.CODE}</td>
+              <td style="padding:10px">${c.DISCOUNT_TYPE}</td>
+              <td style="padding:10px;text-align:right">
+                ${c.DISCOUNT_TYPE === 'percentage'
+                  ? c.DISCOUNT_VALUE + '%'
+                  : 'Rs. ' + Number(c.DISCOUNT_VALUE).toLocaleString()}
+              </td>
+              <td style="padding:10px;text-align:right">
+                ${c.MIN_ORDER_AMT > 0
+                  ? 'Rs. ' + Number(c.MIN_ORDER_AMT).toLocaleString()
+                  : 'No minimum'}
+              </td>
+              <td style="padding:10px;text-align:center">${c.EXPIRY_DATE}</td>
+              <td style="padding:10px;text-align:center">
+                ${c.IS_ACTIVE
+                  ? '<span class="badge" style="background:#d1fae5;color:#065f46">Active</span>'
+                  : '<span class="badge" style="background:#fee2e2;color:#991b1b">Inactive</span>'}
+              </td>
+              <td style="padding:10px;text-align:center">
+                ${c.IS_ACTIVE
+                  ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:12px"
+                             onclick="deactivateCoupon(${c.COUPON_ID})">Deactivate</button>`
+                  : '<span style="color:#64748b;font-size:12px">Deactivated</span>'}
+              </td>
+            </tr>`).join('')}
+        </table>`;
+    } catch(e) {
+      document.getElementById('admin-output').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function createCoupon() {
+    const code          = document.getElementById('new-code').value.trim();
+    const discount_type = document.getElementById('new-type').value;
+    const discount_value = document.getElementById('new-value').value;
+    const min_order_amt  = document.getElementById('new-min').value;
+    const expiry_date    = document.getElementById('new-expiry').value;
+
+    if (!code || !discount_value || !expiry_date) {
+      alert('Please fill in all required fields!');
+      return;
+    }
+
+    try {
+      await api.post('/admin/coupons', {
+        code, discount_type, discount_value, min_order_amt, expiry_date
+      });
+      alert(`Coupon ${code.toUpperCase()} created!`);
+      loadCoupons();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+
+  async function deactivateCoupon(id) {
+    if (!confirm('Deactivate this coupon?')) return;
+    try {
+      await api.delete('/admin/coupons/' + id);
+      alert('Coupon deactivated!');
+      loadCoupons();
+    } catch(e) {
+      alert(e.message);
+    }
+  }
+</script>
+</body>
+</html>
