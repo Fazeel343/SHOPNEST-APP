@@ -1,5 +1,4 @@
 # Project Report
-
 # SHOPNEST - E-commerce Platform
 
 ```text
@@ -11,31 +10,18 @@ SHOPNEST
 │   │   └── auth.js
 ```
 
-## Course
-CS-3001 Database Management Systems (Spring-2026)
-
-## Group Members
-- Fazeel Muhammad (24K-1020)
-- Adeel Rehman (24K-0910)
-
-## Project Type
-DBMS Semester Project
-
 ## Deliverable
 Functional Web App & SQL Database Scripts
 
 ---
 
 # 1. Introduction
-
 ShopNest is a comprehensive e-commerce platform developed to demonstrate the practical application of database design principles. The system facilitates a complete shopping lifecycle, from product discovery to order fulfillment, powered by a structured SQL backend.
 
 # 2. System Architecture
-
 The system follows a modular architecture where the backend interacts with the SQL database via an abstraction layer, ensuring that business logic is decoupled from data storage.
 
 # 3. File Structure Overview
-
 The following directory structure represents the implemented ShopNest project:
 
 ```text
@@ -86,13 +72,63 @@ The following directory structure represents the implemented ShopNest project:
 # 5. Implementation Details
 
 ## 5.1 Data Integrity
-
 Strict constraints were applied to ensure that no order can be placed for out-of-stock items and that every review is linked to a valid user and product.
 
 ## 5.2 Transaction Management
-
 Stored procedures were used to handle the checkout process, ensuring that the creation of an order and the update of inventory occur as a single atomic unit.
 
-# 6. Conclusion
+# 6. Screenshots & Demo
 
+## Full Demo (8-Minute Walkthrough)
+▶️ [Watch on YouTube](https://youtu.be/IDOZVuMxwUo)
+
+---
+
+## App Demo GIF
+
+![Demo](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/Demo.gif)
+
+---
+
+## Login Page
+![Login Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/login_page.png)
+
+## Create Account Page
+![Create Account Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/create_account_page.png)
+
+## Products Page
+![Products Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/products_page.png)
+
+## Add to Cart Page
+![Add to Cart](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/add_to_cart_page.png)
+
+## Cart Page
+![Cart Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/cart_page.png)
+
+## Checkout Page
+![Checkout Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/checkout_page.png)
+
+## My Orders Page
+![My Orders Page](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/my_orders_page.png)
+
+## Admin Dashboard
+![Admin Dashboard](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/admin_dashboard.png)
+
+## Manage Orders
+![Manage Orders](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/manage_orders.png)
+
+## Manage Coupons
+![Manage Coupons](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/manage_coupons.png)
+
+## Sales Report
+![Sales Report](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/sales_report.png)
+
+## Stock Management
+![Stock](https://raw.githubusercontent.com/Fazeel343/SHOPNEST-APP/main/assets/stock.png)
+
+---
+
+# 7. Conclusion
+The ShopNest project successfully demonstrates how a relational database can efficiently power a dynamic web application. Through normalization, indexing, and server-side logic, the platform provides a scalable and reliable user experience.
+# 7. Conclusion
 The ShopNest project successfully demonstrates how a relational database can efficiently power a dynamic web application. Through normalization, indexing, and server-side logic, the platform provides a scalable and reliable user experience.
