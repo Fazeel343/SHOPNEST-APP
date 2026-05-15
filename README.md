@@ -130,5 +130,3 @@ Stored procedures were used to handle the checkout process, ensuring that the cr
 
 # 7. Conclusion
 The ShopNest project successfully demonstrates how a relational database can efficiently power a dynamic web application. Through normalization, indexing, and server-side logic, the platform provides a scalable and reliable user experience.
-# 7. Conclusion
-The ShopNest project successfully demonstrates how a relational database can efficiently power a dynamic web application. Through normalization, indexing, and server-side logic, the platform provides a scalable and reliable user experience.
